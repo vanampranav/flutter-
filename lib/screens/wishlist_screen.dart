@@ -1,29 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../models/wishlist_model.dart';
+import '../models/cart_model.dart';
 
-class WishlistScreen extends StatefulWidget {
+class WishlistScreen extends StatelessWidget {
   const WishlistScreen({Key? key}) : super(key: key);
-
-  @override
-  State<WishlistScreen> createState() => _WishlistScreenState();
-}
-
-class _WishlistScreenState extends State<WishlistScreen> {
-  final List<Map<String, dynamic>> _wishlistItems = [
-    {
-      'name': 'EleFit Ice Cooling Arm Sleeves',
-      'price': 9.99,
-      'image': 'https://via.placeholder.com/150',
-      'description': 'UPF 50+ Sun Protection, Breathable, Lightweight',
-    },
-    {
-      'name': 'EleFit Titan Duffle Bag',
-      'price': 47.00,
-      'image': 'https://via.placeholder.com/150',
-      'description': 'Waterproof Gym Bag with Shoe Compartment',
-    },
-    // Add more items as needed
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +19,18 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ),
         ],
       ),
-      body: _wishlistItems.isEmpty
-          ? _buildEmptyWishlist()
-          : _buildWishlistItems(),
+      body: Consumer<WishlistModel>(
+        builder: (context, wishlist, child) {
+          if (wishlist.items.isEmpty) {
+            return _buildEmptyWishlist(context);
+          }
+          return _buildWishlistItems(context, wishlist);
+        },
+      ),
     );
   }
 
-  Widget _buildEmptyWishlist() {
+  Widget _buildEmptyWishlist(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +56,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              // Navigate to shop
+            },
             child: const Text('Start Shopping'),
           ),
         ],
@@ -77,14 +66,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  Widget _buildWishlistItems() {
+  Widget _buildWishlistItems(BuildContext context, WishlistModel wishlist) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _wishlistItems.length,
+      itemCount: wishlist.items.length,
       itemBuilder: (context, index) {
-        final item = _wishlistItems[index];
+        final item = wishlist.items[index];
         return Dismissible(
-          key: Key(item['name']),
+          key: Key(item.id),
           direction: DismissDirection.endToStart,
           background: Container(
             alignment: Alignment.centerRight,
@@ -100,17 +89,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
             ),
           ),
           onDismissed: (direction) {
-            setState(() {
-              _wishlistItems.removeAt(index);
-            });
+            wishlist.removeFromWishlist(item.id);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Item removed from wishlist'),
                 action: SnackBarAction(
                   label: 'Undo',
                   onPressed: () {
-                    setState(() {
-                      _wishlistItems.insert(index, item);
+                    wishlist.toggleWishlist({
+                      'id': item.id,
+                      'title': item.title,
+                      'price': item.price,
+                      'imageUrl': item.imageUrl,
+                      'description': item.description,
                     });
                   },
                 ),
@@ -118,11 +109,25 @@ class _WishlistScreenState extends State<WishlistScreen> {
             );
           },
           child: Hero(
-            tag: 'wishlist_${item['name']}',
+            tag: 'wishlist_${item.id}',
             child: Card(
               margin: const EdgeInsets.only(bottom: 16),
               child: InkWell(
-                onTap: () {},
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/product-details',
+                    arguments: {
+                      'product': {
+                        'id': item.id,
+                        'name': item.title,
+                        'price': item.price,
+                        'image': item.imageUrl,
+                        'description': item.description,
+                      },
+                    },
+                  );
+                },
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -131,10 +136,20 @@ class _WishlistScreenState extends State<WishlistScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          item['image'],
+                          item.imageUrl,
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -143,14 +158,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['name'],
+                              item.title,
                               style: Theme.of(context).textTheme.titleLarge,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              item['description'],
+                              item.description,
                               style: Theme.of(context).textTheme.bodyMedium,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -160,7 +175,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '\$${item['price'].toStringAsFixed(2)}',
+                                  '\$${item.price.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     color: AppTheme.accentColor,
                                     fontWeight: FontWeight.bold,
@@ -168,7 +183,26 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                   ),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    final cartModel = context.read<CartModel>();
+                                    cartModel.addToCart(
+                                      {
+                                        'id': item.id,
+                                        'title': item.title,
+                                        'price': item.price,
+                                        'imageUrl': item.imageUrl,
+                                      },
+                                      item.id, // Using item.id as variant ID for simplicity
+                                      1,
+                                      size: 'M',
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Added to cart'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,

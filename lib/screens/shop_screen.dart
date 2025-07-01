@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/shopify_service.dart';
+import '../models/product_model.dart';
+import '../models/cart_model.dart';
+import '../models/wishlist_model.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'cart_screen.dart';
+import 'wishlist_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({Key? key}) : super(key: key);
@@ -9,26 +17,51 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
-  final List<Map<String, dynamic>> _products = [
-    {
-      'name': 'EleFit Ice Cooling Arm Sleeves',
-      'price': 9.99,
-      'image': 'https://via.placeholder.com/300',
-      'description': 'UPF 50+ Sun Protection, Breathable, Lightweight',
-      'category': 'Accessories',
-    },
-    {
-      'name': 'EleFit Titan Duffle Bag',
-      'price': 47.00,
-      'image': 'https://via.placeholder.com/300',
-      'description': 'Waterproof Gym Bag with Shoe Compartment',
-      'category': 'Bags',
-    },
-    // Add more products as needed
-  ];
-
+  final ShopifyService _shopifyService = ShopifyService();
+  List<Product> _products = [];
+  bool _isLoading = true;
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Accessories', 'Bags', 'Apparel', 'Equipment'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final productsData = await _shopifyService.getProducts();
+      if (productsData != null) {
+        final List<Product> products = productsData['products']['edges']
+            .map<Product>((edge) => Product.fromJson(edge))
+            .toList();
+        setState(() {
+          _products = products;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showError('Failed to load products');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showError('An error occurred while loading products');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +72,17 @@ class _ShopScreenState extends State<ShopScreen> {
           SliverToBoxAdapter(
             child: _buildCategories(),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: _buildProductGrid(),
-          ),
+          if (_isLoading)
+            const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: _buildProductGrid(),
+            ),
         ],
       ),
     );
@@ -119,7 +159,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _buildProductGrid() {
     final filteredProducts = _selectedCategory == 'All'
         ? _products
-        : _products.where((p) => p['category'] == _selectedCategory).toList();
+        : _products.where((p) => p.title.contains(_selectedCategory)).toList();
 
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -132,7 +172,7 @@ class _ShopScreenState extends State<ShopScreen> {
         (context, index) {
           final product = filteredProducts[index];
           return Hero(
-            tag: 'product_${product['name']}',
+            tag: 'product_${product.id}',
             child: Card(
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -140,7 +180,14 @@ class _ShopScreenState extends State<ShopScreen> {
                   Navigator.pushNamed(
                     context,
                     '/product-details',
-                    arguments: {'product': product},
+                    arguments: {
+                      'product': {
+                        'name': product.title,
+                        'price': product.price,
+                        'image': product.imageUrl,
+                        'description': product.description,
+                      },
+                    },
                   );
                 },
                 child: Column(
@@ -151,20 +198,65 @@ class _ShopScreenState extends State<ShopScreen> {
                         AspectRatio(
                           aspectRatio: 1,
                           child: Image.network(
-                            product['image'],
+                            product.imageUrl,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
                           ),
                         ),
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: IconButton(
-                            icon: const Icon(Icons.favorite_border),
-                            onPressed: () {},
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              padding: const EdgeInsets.all(8),
-                            ),
+                          child: Consumer<WishlistModel>(
+                            builder: (context, wishlist, child) {
+                              final isInWishlist = wishlist.items.any((item) => item.id == product.id);
+                              return IconButton(
+                                icon: Icon(
+                                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                  color: isInWishlist ? Colors.red : null,
+                                ),
+                                onPressed: () {
+                                  wishlist.toggleWishlist({
+                                    'id': product.id,
+                                    'title': product.title,
+                                    'price': product.price,
+                                    'imageUrl': product.imageUrl,
+                                    'description': product.description,
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isInWishlist ? 'Removed from wishlist' : 'Added to wishlist',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      action: SnackBarAction(
+                                        label: 'VIEW WISHLIST',
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const WishlistScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  padding: const EdgeInsets.all(8),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -175,14 +267,14 @@ class _ShopScreenState extends State<ShopScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            product['name'],
+                            product.title,
                             style: Theme.of(context).textTheme.titleMedium,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '\$${product['price'].toStringAsFixed(2)}',
+                            '\$${product.price.toStringAsFixed(2)}',
                             style: TextStyle(
                               color: AppTheme.accentColor,
                               fontWeight: FontWeight.bold,

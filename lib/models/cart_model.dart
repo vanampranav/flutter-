@@ -1,37 +1,67 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class CartItem {
   final String id;
-  final String name;
+  final String variantId;
+  final String title;
   final double price;
-  final String image;
+  final String imageUrl;
   final int quantity;
   final String size;
 
   CartItem({
     required this.id,
-    required this.name,
+    required this.variantId,
+    required this.title,
     required this.price,
-    required this.image,
+    required this.imageUrl,
     required this.quantity,
     required this.size,
   });
 
   CartItem copyWith({
     String? id,
-    String? name,
+    String? variantId,
+    String? title,
     double? price,
-    String? image,
+    String? imageUrl,
     int? quantity,
     String? size,
   }) {
     return CartItem(
       id: id ?? this.id,
-      name: name ?? this.name,
+      variantId: variantId ?? this.variantId,
+      title: title ?? this.title,
       price: price ?? this.price,
-      image: image ?? this.image,
+      imageUrl: imageUrl ?? this.imageUrl,
       quantity: quantity ?? this.quantity,
       size: size ?? this.size,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'variantId': variantId,
+      'title': title,
+      'price': price,
+      'imageUrl': imageUrl,
+      'quantity': quantity,
+      'size': size,
+    };
+  }
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      id: json['id'],
+      variantId: json['variantId'],
+      title: json['title'],
+      price: json['price'].toDouble(),
+      imageUrl: json['imageUrl'],
+      quantity: json['quantity'],
+      size: json['size'],
     );
   }
 
@@ -39,10 +69,37 @@ class CartItem {
 }
 
 class CartModel extends ChangeNotifier {
-  final List<CartItem> _items = [];
+  List<CartItem> _items = [];
   double _subtotal = 0;
   double _shipping = 5.99;
   double _tax = 0;
+  late SharedPreferences _prefs;
+  bool _initialized = false;
+
+  CartModel() {
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadCart();
+    _initialized = true;
+  }
+
+  Future<void> _loadCart() async {
+    final String? cartJson = _prefs.getString('cart');
+    if (cartJson != null) {
+      final List<dynamic> cartList = json.decode(cartJson);
+      _items = cartList.map((item) => CartItem.fromJson(item)).toList();
+      _updateTotals();
+    }
+  }
+
+  Future<void> _saveCart() async {
+    if (!_initialized) return;
+    final String cartJson = json.encode(_items.map((item) => item.toJson()).toList());
+    await _prefs.setString('cart', cartJson);
+  }
 
   List<CartItem> get items => [..._items];
   int get itemCount => _items.length;
@@ -51,9 +108,9 @@ class CartModel extends ChangeNotifier {
   double get tax => _tax;
   double get total => _subtotal + _shipping + _tax;
 
-  void addToCart(Map<String, dynamic> product, int quantity, {String size = 'M'}) {
+  void addToCart(Map<String, dynamic> product, String variantId, int quantity, {String size = 'M'}) {
     final existingIndex = _items.indexWhere((item) => 
-      item.id == product['name'] && item.size == size
+      item.variantId == variantId && item.size == size
     );
 
     if (existingIndex >= 0) {
@@ -66,10 +123,11 @@ class CartModel extends ChangeNotifier {
       // Add new item
       _items.add(
         CartItem(
-          id: product['name'],
-          name: product['name'],
-          price: product['price'],
-          image: product['image'],
+          id: product['id'],
+          variantId: variantId,
+          title: product['title'],
+          price: double.parse(product['price'].toString()),
+          imageUrl: product['imageUrl'],
           quantity: quantity,
           size: size,
         ),
@@ -77,18 +135,20 @@ class CartModel extends ChangeNotifier {
     }
 
     _updateTotals();
+    _saveCart();
     notifyListeners();
   }
 
-  void removeFromCart(String id, String size) {
-    _items.removeWhere((item) => item.id == id && item.size == size);
+  void removeFromCart(String variantId, String size) {
+    _items.removeWhere((item) => item.variantId == variantId && item.size == size);
     _updateTotals();
+    _saveCart();
     notifyListeners();
   }
 
-  void updateQuantity(String id, String size, int quantity) {
+  void updateQuantity(String variantId, String size, int quantity) {
     final index = _items.indexWhere(
-      (item) => item.id == id && item.size == size,
+      (item) => item.variantId == variantId && item.size == size,
     );
 
     if (index >= 0) {
@@ -98,6 +158,7 @@ class CartModel extends ChangeNotifier {
         _items.removeAt(index);
       }
       _updateTotals();
+      _saveCart();
       notifyListeners();
     }
   }
@@ -105,6 +166,7 @@ class CartModel extends ChangeNotifier {
   void clearCart() {
     _items.clear();
     _updateTotals();
+    _saveCart();
     notifyListeners();
   }
 

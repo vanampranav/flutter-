@@ -1,16 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/cart_model.dart';
+import 'models/wishlist_model.dart';
+import 'models/fitness_model.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/wishlist_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/product_details_screen.dart';
 import 'screens/shop_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/workout_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/bottom_nav_bar.dart';
+import 'services/shopify_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'widgets/fitness_loading.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set preferred orientations
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Set system overlay style
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppTheme.surfaceColor,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
+  final shopifyService = ShopifyService();
+  await shopifyService.initialize();
   runApp(const MyApp());
 }
 
@@ -19,12 +47,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (ctx) => CartModel(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (ctx) => CartModel()),
+        ChangeNotifierProvider(create: (ctx) => WishlistModel()),
+        ChangeNotifierProvider(create: (ctx) => FitnessModel()),
+      ],
       child: MaterialApp(
         title: 'EleFit',
-        theme: AppTheme.lightTheme,
-        home: const MainScreen(),
+        theme: AppTheme.darkTheme,
+        debugShowCheckedModeBanner: false,
+        home: const AuthWrapper(),
+        routes: {
+          '/home': (context) => const MainScreen(),
+          '/auth': (context) => const AuthScreen(),
+        },
         onGenerateRoute: (settings) {
           if (settings.name == '/product-details') {
             final args = settings.arguments as Map<String, dynamic>;
@@ -53,6 +90,58 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    setState(() {
+      _isAuthenticated = token != null;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const FitnessLoading(size: 60),
+              const SizedBox(height: 24),
+              Text(
+                'Loading EleFit',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return _isAuthenticated ? const MainScreen() : const AuthScreen();
+  }
+}
+
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
 
@@ -67,9 +156,10 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const ShopScreen(),
+    const WorkoutScreen(),
     const WishlistScreen(),
     const CartScreen(),
-    const AuthScreen(),
+    const ProfileScreen(),
   ];
 
   @override

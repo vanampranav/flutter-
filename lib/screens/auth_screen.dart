@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/shopify_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -10,6 +12,14 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
   bool _isLogin = true;
+  bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _shopifyService = ShopifyService();
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -34,11 +44,27 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
 
     _animationController.forward();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await _shopifyService.isLoggedIn();
+    if (isLoggedIn) {
+      _navigateToHome();
+    }
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacementNamed('/');
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -48,6 +74,79 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     });
     _animationController.reset();
     _animationController.forward();
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_isLogin) {
+        final result = await _shopifyService.customerAccessTokenCreate(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+
+        if (result != null && result['customerAccessTokenCreate']['customerAccessToken'] != null) {
+          final token = result['customerAccessTokenCreate']['customerAccessToken']['accessToken'];
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', token);
+          if (mounted) {
+            Navigator.of(context).pushReplacementNamed('/home');
+          }
+        } else {
+          _showError('Invalid email or password');
+        }
+      } else {
+        final result = await _shopifyService.createCustomer(
+          email: _emailController.text,
+          password: _passwordController.text,
+          firstName: _firstNameController.text,
+          lastName: _lastNameController.text,
+        );
+
+        if (result != null && result['customerCreate']['customer'] != null) {
+          // Auto login after registration
+          final loginResult = await _shopifyService.customerAccessTokenCreate(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+          
+          if (loginResult != null && loginResult['customerAccessTokenCreate']['customerAccessToken'] != null) {
+            final token = loginResult['customerAccessTokenCreate']['customerAccessToken']['accessToken'];
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('auth_token', token);
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            }
+          }
+        } else {
+          _showError('Failed to create account');
+        }
+      }
+    } catch (e) {
+      _showError('An error occurred. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -126,67 +225,114 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       ),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isLogin ? 'Welcome Back' : 'Create Account',
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _isLogin ? 'Welcome Back' : 'Create Account',
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock_outline),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
               ),
-              obscureText: true,
-            ),
-            if (!_isLogin) ...[
               const SizedBox(height: 16),
               TextFormField(
+                controller: _passwordController,
                 decoration: const InputDecoration(
-                  labelText: 'Confirm Password',
+                  labelText: 'Password',
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
                 obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
               ),
-            ],
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              if (!_isLogin) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _firstNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'First Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your first name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _lastNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Last Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your last name';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _submitForm,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(_isLogin ? 'Login' : 'Sign Up'),
               ),
-              child: Text(_isLogin ? 'Login' : 'Sign Up'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _switchAuthMode,
-              child: Text(
-                _isLogin
-                    ? 'Don\'t have an account? Sign Up'
-                    : 'Already have an account? Login',
-              ),
-            ),
-            if (_isLogin) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               TextButton(
-                onPressed: () {},
-                child: const Text('Forgot Password?'),
+                onPressed: _switchAuthMode,
+                child: Text(
+                  _isLogin
+                      ? 'Don\'t have an account? Sign Up'
+                      : 'Already have an account? Login',
+                ),
               ),
+              if (_isLogin) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    // TODO: Implement forgot password
+                  },
+                  child: const Text('Forgot Password?'),
+                ),
+              ],
+              const SizedBox(height: 16),
+              _buildSocialLogin(),
             ],
-            const SizedBox(height: 16),
-            _buildSocialLogin(),
-          ],
+          ),
         ),
       ),
     );
@@ -203,12 +349,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             _buildSocialButton(
               icon: Icons.g_mobiledata,
               label: 'Google',
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Implement Google sign in
+              },
             ),
             _buildSocialButton(
               icon: Icons.facebook,
               label: 'Facebook',
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Implement Facebook sign in
+              },
             ),
           ],
         ),

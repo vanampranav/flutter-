@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/cart_model.dart';
 import '../theme/app_theme.dart';
+import '../models/product_model.dart';
+import 'cart_screen.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -19,6 +21,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _selectedSize = 1;
   int _quantity = 1;
   bool _isInWishlist = false;
+  late List<String> _sizes;
+  late String _selectedVariantId;
+
+  @override
+  void initState() {
+    super.initState();
+    _sizes = ['S', 'M', 'L', 'XL'];
+    _selectedVariantId = widget.product['variants']?[0]?['id'] ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +86,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   Widget _buildProductImage() {
     return Hero(
-      tag: 'product_${widget.product['name']}',
+      tag: 'product_${widget.product['id']}',
       child: Container(
         height: 300,
         width: double.infinity,
@@ -88,6 +99,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               child: Image.network(
                 widget.product['image'],
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
               ),
             ),
             Positioned(
@@ -198,7 +219,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildSizeSelector() {
-    final sizes = ['S', 'M', 'L', 'XL'];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -211,11 +231,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           const SizedBox(height: 12),
           Row(
             children: List.generate(
-              sizes.length,
+              _sizes.length,
               (index) => Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: ChoiceChip(
-                  label: Text(sizes[index]),
+                  label: Text(_sizes[index]),
                   selected: _selectedSize == index,
                   onSelected: (selected) {
                     setState(() {
@@ -344,11 +364,33 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   final cartModel = context.read<CartModel>();
-                  cartModel.addToCart(widget.product, _quantity);
+                  cartModel.addToCart(
+                    {
+                      'id': widget.product['id'] ?? '',
+                      'title': widget.product['name'] ?? '',
+                      'price': widget.product['price'] ?? 0.0,
+                      'imageUrl': widget.product['image'] ?? '',
+                      'description': widget.product['description'] ?? '',
+                    },
+                    widget.product['id'] ?? DateTime.now().toString(), // Fallback ID if none provided
+                    _quantity,
+                    size: _sizes[_selectedSize],
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Added to cart'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: const Text('Added to cart'),
+                      duration: const Duration(seconds: 2),
+                      action: SnackBarAction(
+                        label: 'VIEW CART',
+                        onPressed: () {
+                          // Navigate to cart screen
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CartScreen(),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   );
                 },

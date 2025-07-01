@@ -85,7 +85,7 @@ class CartScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = cart.items[index];
         return Dismissible(
-          key: Key('${item.id}_${item.size}'),
+          key: Key('${item.variantId}_${item.size}'),
           direction: DismissDirection.endToStart,
           background: Container(
             alignment: Alignment.centerRight,
@@ -101,7 +101,7 @@ class CartScreen extends StatelessWidget {
             ),
           ),
           onDismissed: (direction) {
-            cart.removeFromCart(item.id, item.size);
+            cart.removeFromCart(item.variantId, item.size);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Item removed from cart'),
@@ -110,10 +110,12 @@ class CartScreen extends StatelessWidget {
                   onPressed: () {
                     cart.addToCart(
                       {
-                        'name': item.name,
+                        'id': item.id,
+                        'title': item.title,
                         'price': item.price,
-                        'image': item.image,
+                        'imageUrl': item.imageUrl,
                       },
+                      item.variantId,
                       item.quantity,
                       size: item.size,
                     );
@@ -131,10 +133,20 @@ class CartScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      item.image,
+                      item.imageUrl,
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -143,7 +155,7 @@ class CartScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.name,
+                          item.title,
                           style: Theme.of(context).textTheme.titleMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -173,7 +185,7 @@ class CartScreen extends StatelessWidget {
                                   icon: const Icon(Icons.remove),
                                   onPressed: () {
                                     cart.updateQuantity(
-                                      item.id,
+                                      item.variantId,
                                       item.size,
                                       item.quantity - 1,
                                     );
@@ -195,7 +207,7 @@ class CartScreen extends StatelessWidget {
                                   icon: const Icon(Icons.add),
                                   onPressed: () {
                                     cart.updateQuantity(
-                                      item.id,
+                                      item.variantId,
                                       item.size,
                                       item.quantity + 1,
                                     );
@@ -287,7 +299,7 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // Implement checkout
+                // TODO: Implement checkout with Shopify
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
