@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/cart_model.dart';
 import '../theme/app_theme.dart';
+import 'webview_checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({Key? key}) : super(key: key);
+
+  // Shopify checkout URL with proper encoding
+  static const String shopifyCheckoutUrl = 'https://theelefit.com/checkouts/cn/Z2NwLXVzLWVhc3QxOjAxSldZMTlUWVlSQjc4VldKTktGN01ZTjQ3';
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +303,15 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // TODO: Implement checkout with Shopify
+                debugPrint('Opening checkout URL: $shopifyCheckoutUrl');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WebViewCheckoutScreen(
+                      checkoutUrl: shopifyCheckoutUrl,
+                    ),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

@@ -44,18 +44,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
 
     _animationController.forward();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _shopifyService.isLoggedIn();
-    if (isLoggedIn) {
-      _navigateToHome();
-    }
-  }
-
-  void _navigateToHome() {
-    Navigator.of(context).pushReplacementNamed('/');
   }
 
   @override
@@ -97,7 +85,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
+            Navigator.of(context).pop(true); // Return true to indicate successful login
           }
         } else {
           _showError('Invalid email or password');
@@ -122,7 +110,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('auth_token', token);
             if (mounted) {
-              Navigator.of(context).pushReplacementNamed('/home');
+              Navigator.of(context).pop(true); // Return true to indicate successful login
             }
           }
         } else {
@@ -151,7 +139,23 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(false); // Return false to indicate login was cancelled
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pop(false); // Return false to indicate login was cancelled
+            },
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -171,7 +175,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 48),
+                    const SizedBox(height: 24),
                   _buildLogo(),
                   const SizedBox(height: 48),
                   FadeTransition(
@@ -182,6 +186,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ),
@@ -227,22 +232,22 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _isLogin ? 'Welcome Back' : 'Create Account',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _isLogin ? 'Welcome Back' : 'Create Account',
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your email';
@@ -252,7 +257,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   }
                   return null;
                 },
-              ),
+            ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
@@ -299,39 +304,39 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     }
                     return null;
                   },
-                ),
-              ],
-              const SizedBox(height: 24),
-              ElevatedButton(
+              ),
+            ],
+            const SizedBox(height: 24),
+            ElevatedButton(
                 onPressed: _isLoading ? null : _submitForm,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(_isLogin ? 'Login' : 'Sign Up'),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: _switchAuthMode,
+              child: Text(
+                _isLogin
+                    ? 'Don\'t have an account? Sign Up'
+                    : 'Already have an account? Login',
               ),
-              const SizedBox(height: 16),
+            ),
+            if (_isLogin) ...[
+              const SizedBox(height: 8),
               TextButton(
-                onPressed: _switchAuthMode,
-                child: Text(
-                  _isLogin
-                      ? 'Don\'t have an account? Sign Up'
-                      : 'Already have an account? Login',
-                ),
-              ),
-              if (_isLogin) ...[
-                const SizedBox(height: 8),
-                TextButton(
                   onPressed: () {
                     // TODO: Implement forgot password
                   },
-                  child: const Text('Forgot Password?'),
-                ),
-              ],
-              const SizedBox(height: 16),
-              _buildSocialLogin(),
+                child: const Text('Forgot Password?'),
+              ),
             ],
+            const SizedBox(height: 16),
+            _buildSocialLogin(),
+          ],
           ),
         ),
       ),

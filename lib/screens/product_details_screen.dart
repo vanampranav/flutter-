@@ -4,6 +4,7 @@ import '../models/cart_model.dart';
 import '../theme/app_theme.dart';
 import '../models/product_model.dart';
 import 'cart_screen.dart';
+import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -23,12 +24,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   bool _isInWishlist = false;
   late List<String> _sizes;
   late String _selectedVariantId;
+  int _currentImageIndex = 0;
+  late List<String> _productImages;
 
   @override
   void initState() {
     super.initState();
     _sizes = ['S', 'M', 'L', 'XL'];
     _selectedVariantId = widget.product['variants']?[0]?['id'] ?? '';
+    _productImages = List<String>.from(widget.product['images'] ?? [widget.product['image']]);
   }
 
   @override
@@ -95,21 +99,41 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         child: Stack(
           children: [
-            Center(
-              child: Image.network(
-                widget.product['image'],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey.shade200,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  );
+            FlutterCarousel(
+              options: CarouselOptions(
+                height: 300,
+                showIndicator: true,
+                viewportFraction: 1.0,
+                enableInfiniteScroll: true,
+                autoPlay: false,
+                slideIndicator: CircularSlideIndicator(),
+                initialPage: _currentImageIndex,
+                onPageChanged: (index, reason) {
+                  setState(() {
+                    _currentImageIndex = index;
+                  });
                 },
               ),
+              items: _productImages.map((imageUrl) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Image.network(
+                      imageUrl,
+                fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              }).toList(),
             ),
             Positioned(
               bottom: 16,
@@ -124,16 +148,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(
+                  children: [
+                    const Icon(
                       Icons.photo_library,
                       color: Colors.white,
                       size: 16,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '1/4',
-                      style: TextStyle(
+                      '${_currentImageIndex + 1}/${_productImages.length}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                       ),

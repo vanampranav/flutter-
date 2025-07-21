@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../services/shopify_service.dart';
 
 class CartItem {
   final String id;
@@ -68,7 +69,7 @@ class CartItem {
   double get total => price * quantity;
 }
 
-class CartModel extends ChangeNotifier {
+class CartModel with ChangeNotifier {
   List<CartItem> _items = [];
   double _subtotal = 0;
   double _shipping = 5.99;
@@ -107,6 +108,7 @@ class CartModel extends ChangeNotifier {
   double get shipping => _shipping;
   double get tax => _tax;
   double get total => _subtotal + _shipping + _tax;
+  double get totalPrice => total;
 
   void addToCart(Map<String, dynamic> product, String variantId, int quantity, {String size = 'M'}) {
     final existingIndex = _items.indexWhere((item) => 

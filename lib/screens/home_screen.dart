@@ -9,6 +9,7 @@ import '../models/cart_model.dart';
 import '../models/wishlist_model.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'blog_screen.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -33,26 +34,26 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {});
         },
         child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(
+        slivers: [
+          _buildAppBar(),
+          SliverToBoxAdapter(
               child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     _buildHeroCarousel(),
                     _buildPromotionBanner(),
-                    _buildCategories(),
+                  _buildCategories(),
                     _buildFeaturedProducts(),
                     _buildBestSellers(),
                     _buildBlogSection(),
                     _buildNewsletterSection(),
                     const SizedBox(height: 24), // Bottom padding
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -70,10 +71,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             AppConstants.appName,
             style: GoogleFonts.poppins(
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.bold,
-            ),
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.bold,
           ),
+        ),
         ],
       ),
       actions: [
@@ -107,25 +108,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
                   gradient: AppTheme.primaryGradient,
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Image.network(
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Image.network(
                         AppConstants.placeholderImage,
                         height: 300,
                         fit: BoxFit.cover,
-                      ),
-                    ),
-                    Padding(
+            ),
+          ),
+          Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
+              children: [
+                Text(
                             'Stay active together!',
                             style: GoogleFonts.poppins(
                               color: Colors.white,
@@ -137,13 +138,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'SERVE YOUR\nBEST GAME!',
                             style: GoogleFonts.poppins(
-                              color: Colors.white,
+                    color: Colors.white,
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 16),
                           Text(
                             'A balanced lifestyle leads to long-term success in fitness and well-being.',
                             style: GoogleFonts.poppins(
@@ -152,23 +153,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppTheme.primaryColor,
-                            ),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryColor,
+                  ),
                             child: Text(
                               'Shop and stay fit',
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
                 ),
               );
             },
@@ -219,16 +220,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
             'SHOP BY CATEGORY',
             style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -245,16 +246,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: InkWell(
                   onTap: () {},
                   borderRadius: BorderRadius.circular(12),
-                  child: Column(
+                child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                  children: [
                       Icon(
                         category['icon'] as IconData,
                         size: 32,
                         color: AppTheme.primaryColor,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
                         category['name'] as String,
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
@@ -266,8 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppTheme.secondaryTextColor,
                           fontSize: 12,
                         ),
-                      ),
-                    ],
+                    ),
+                  ],
                   ),
                 ),
               );
@@ -297,138 +298,212 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // Navigate to shop screen with featured filter
+                  },
                   child: Text(
                     'Shop all',
                     style: GoogleFonts.poppins(),
                   ),
-                ),
-              ],
+        ),
+      ],
             ),
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 300,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              itemBuilder: (context, index) {
-                final product = {
-                  'id': 'product_$index',
-                  'title': 'EleFit Titan Duffle Bag',
-                  'price': 47.00,
-                  'imageUrl': AppConstants.productPlaceholder,
-                  'description': 'Perfect for your workout essentials',
-                };
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
-                                child: Image.network(
-                                  product['imageUrl'] as String,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Consumer<WishlistModel>(
-                                builder: (context, wishlist, child) {
-                                  final isInWishlist = wishlist.items.any((item) => item.id == product['id']);
-                                  return IconButton(
-                                    icon: Icon(
-                                      isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                      color: isInWishlist ? Colors.red : null,
-                                    ),
-                                    onPressed: () {
-                                      wishlist.toggleWishlist(product);
-                                    },
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      padding: const EdgeInsets.all(8),
-                                    ),
-                                  );
+            child: FutureBuilder<Map<String, dynamic>?>(
+              future: _shopifyService.getProducts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+  }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading products',
+                      style: GoogleFonts.poppins(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final productsData = snapshot.data;
+                if (productsData == null) {
+                  return const Center(child: Text('No products found'));
+                }
+
+                final products = (productsData['products']['edges'] as List)
+                    .map((edge) => edge['node'] as Map<String, dynamic>)
+                    .take(5)
+                    .toList();
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return Container(
+                      width: 200,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Card(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/product-details',
+                              arguments: {
+                                'product': {
+                                  'id': product['id'],
+                                  'name': product['title'],
+                                  'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                  'image': product['images']['edges'].isNotEmpty 
+                                      ? product['images']['edges'][0]['node']['url'] 
+                                      : AppConstants.productPlaceholder,
+                                  'images': (product['images']['edges'] as List)
+                                      .map((edge) => edge['node']['url'] as String)
+                                      .toList(),
+                                  'description': product['description'],
                                 },
-                              ),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
+                              },
+                            );
+                          },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                product['title'] as String,
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              Stack(
                                 children: [
-                                  Text(
-                                    '\$${(product['price'] as double).toStringAsFixed(2)}',
-                                    style: GoogleFonts.poppins(
-                                      color: AppTheme.accentColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                  AspectRatio(
+                                    aspectRatio: 1,
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(12),
+                                      ),
+                                      child: Image.network(
+                                        product['images']['edges'].isNotEmpty 
+                                            ? product['images']['edges'][0]['node']['url'] 
+                                            : AppConstants.productPlaceholder,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey.shade200,
+                                            child: const Icon(
+                                              Icons.image_not_supported,
+                                              size: 50,
+                                              color: Colors.grey,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_shopping_cart),
-                                    onPressed: () {
-                                      context.read<CartModel>().addToCart(
-                                        product,
-                                        product['id'] as String,
-                                        1,
-                                      );
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Added to cart',
-                                            style: GoogleFonts.poppins(),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Consumer<WishlistModel>(
+                                      builder: (context, wishlist, child) {
+                                        final isInWishlist = wishlist.isInWishlist(product['id']);
+                                        return IconButton(
+                                          icon: Icon(
+                                            isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                            color: isInWishlist ? Colors.red : null,
                                           ),
-                                          duration: const Duration(seconds: 2),
-                                        ),
-                                      );
-                                    },
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: AppTheme.primaryColor,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.all(8),
+                                          onPressed: () {
+                                            wishlist.toggleWishlist({
+                                              'id': product['id'],
+                                              'title': product['title'],
+                                              'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                              'imageUrl': product['images']['edges'].isNotEmpty 
+                                                  ? product['images']['edges'][0]['node']['url'] 
+                                                  : AppConstants.productPlaceholder,
+                                              'description': product['description'],
+                                            });
+                                          },
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            padding: const EdgeInsets.all(8),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
                               ),
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product['title'] ?? '',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '\$${(double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0).toStringAsFixed(2)}',
+                                          style: GoogleFonts.poppins(
+                                            color: AppTheme.accentColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add_shopping_cart),
+                                          onPressed: () {
+                                            context.read<CartModel>().addToCart(
+                                              {
+                                                'id': product['id'],
+                                                'title': product['title'],
+                                                'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                                'imageUrl': product['images']['edges'].isNotEmpty 
+                                                    ? product['images']['edges'][0]['node']['url'] 
+                                                    : AppConstants.productPlaceholder,
+                                                'description': product['description'],
+                                              },
+                                              product['id'],
+                                              1,
+                                            );
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Added to cart',
+                                                  style: GoogleFonts.poppins(),
+                                                ),
+                                                duration: const Duration(seconds: 2),
+                                              ),
+                                            );
+                                          },
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: AppTheme.primaryColor,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.all(8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+              );
+            },
           ),
-        ],
+        ),
+      ],
       ),
     );
   }
@@ -437,16 +512,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'BEST-SELLING PRODUCTS',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+                'BEST-SELLING PRODUCTS',
+                style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            TextButton(
+                onPressed: () {
+                  // Navigate to shop screen with best sellers filter
+                },
+                child: Text(
+                  'Shop all',
+                  style: GoogleFonts.poppins(),
+                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
           FutureBuilder<Map<String, dynamic>?>(
             future: _shopifyService.getProducts(),
             builder: (context, snapshot) {
@@ -470,8 +559,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               final products = (productsData['products']['edges'] as List)
                   .map((edge) => edge['node'] as Map<String, dynamic>)
+                  .take(4)
                   .toList();
-              final displayProducts = products.take(4).toList();
 
               return GridView.builder(
                 shrinkWrap: true,
@@ -482,16 +571,262 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                 ),
-                itemCount: displayProducts.length,
-                itemBuilder: (context, index) {
-                  final product = displayProducts[index];
+                itemCount: products.length,
+            itemBuilder: (context, index) {
+                  final product = products[index];
                   return Card(
                     child: InkWell(
                       onTap: () {
                         Navigator.pushNamed(
                           context,
                           '/product-details',
-                          arguments: {'product': product},
+                          arguments: {
+                            'product': {
+                              'id': product['id'],
+                              'name': product['title'],
+                              'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                              'image': product['images']['edges'].isNotEmpty 
+                                  ? product['images']['edges'][0]['node']['url'] 
+                                  : AppConstants.productPlaceholder,
+                              'images': (product['images']['edges'] as List)
+                                  .map((edge) => edge['node']['url'] as String)
+                                  .toList(),
+                              'description': product['description'],
+                            },
+                          },
+                        );
+                      },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                          Expanded(
+                            child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    product['images']['edges'].isNotEmpty 
+                                        ? product['images']['edges'][0]['node']['url'] 
+                                        : AppConstants.productPlaceholder,
+                          fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.image_not_supported,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Consumer<WishlistModel>(
+                                      builder: (context, wishlist, child) {
+                                        final isInWishlist = wishlist.isInWishlist(product['id']);
+                                        return IconButton(
+                                          icon: Icon(
+                                            isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                            color: isInWishlist ? Colors.red : null,
+                                          ),
+                                          onPressed: () {
+                                            wishlist.toggleWishlist({
+                                              'id': product['id'],
+                                              'title': product['title'],
+                                              'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                              'imageUrl': product['images']['edges'].isNotEmpty 
+                                                  ? product['images']['edges'][0]['node']['url'] 
+                                                  : AppConstants.productPlaceholder,
+                                              'description': product['description'],
+                                            });
+                                          },
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            padding: const EdgeInsets.all(8),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        ),
+                      ),
+                      Padding(
+                            padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                  product['title'] ?? '',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                            Text(
+                                      '\$${(double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0).toStringAsFixed(2)}',
+                                      style: GoogleFonts.poppins(
+                                color: AppTheme.accentColor,
+                                fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                              ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.add_shopping_cart),
+                                      onPressed: () {
+                                        context.read<CartModel>().addToCart(
+                                          {
+                                            'id': product['id'],
+                                            'title': product['title'],
+                                            'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                            'imageUrl': product['images']['edges'].isNotEmpty 
+                                                ? product['images']['edges'][0]['node']['url'] 
+                                                : AppConstants.productPlaceholder,
+                                            'description': product['description'],
+                                          },
+                                          product['id'],
+                                          1,
+                                        );
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Added to cart',
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      },
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryColor,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.all(8),
+                                      ),
+                                    ),
+                                  ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                  );
+                },
+              );
+            },
+          ),
+      ],
+      ),
+    );
+  }
+
+  Widget _buildBlogSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: Colors.grey.shade50,
+      child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+            'Our amazing media',
+            style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '@ELEFITSTORE',
+            style: GoogleFonts.poppins(
+              color: AppTheme.accentColor,
+              fontWeight: FontWeight.bold,
+          ),
+        ),
+          const SizedBox(height: 24),
+          FutureBuilder<Map<String, dynamic>?>(
+            future: _shopifyService.getBlogs(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading blogs',
+                    style: GoogleFonts.poppins(color: Colors.red),
+                  ),
+                );
+              }
+
+              final blogsData = snapshot.data;
+              if (blogsData == null) {
+                return const Center(child: Text('No blogs found'));
+              }
+
+              final blogs = (blogsData['blogs']['edges'] as List)
+                  .map((edge) => edge['node'] as Map<String, dynamic>)
+                  .toList();
+
+              if (blogs.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No blog posts available',
+                    style: GoogleFonts.poppins(),
+                  ),
+                );
+              }
+
+              // Get the first blog's articles
+              final articles = (blogs[0]['articles']['edges'] as List)
+                  .map((edge) => edge['node'] as Map<String, dynamic>)
+                  .take(4)
+                  .toList();
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: articles.length,
+                itemBuilder: (context, index) {
+                  final article = articles[index];
+                  final imageUrl = article['image']?['url'] ?? AppConstants.blogPlaceholder;
+                  final publishedAt = article['publishedAt'] != null
+                      ? DateFormat.yMMMd().format(DateTime.parse(article['publishedAt']))
+                      : null;
+
+                  return Card(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BlogScreen(
+                              title: article['title'],
+                              imageUrl: imageUrl,
+                              content: article['content'],
+                              publishedAt: publishedAt,
+                              authorName: article['author']?['name'],
+                            ),
+                          ),
                         );
                       },
                       child: Column(
@@ -506,217 +841,89 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fit: StackFit.expand,
                                 children: [
                                   Image.network(
-                                    product['imageUrl'] ?? AppConstants.productPlaceholder,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Consumer<WishlistModel>(
-                                      builder: (context, wishlist, child) {
-                                        final isInWishlist = wishlist.isInWishlist(product['id']);
-                                        return IconButton(
-                                          icon: Icon(
-                                            isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                            color: isInWishlist ? Colors.red : null,
-                                          ),
-                                          onPressed: () {
-                                            wishlist.toggleWishlist(product);
-                                          },
-                                          style: IconButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            padding: const EdgeInsets.all(8),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product['title'] ?? '',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    if (product['compareAtPrice'] != null) ...[
-                                      Text(
-                                        '\$${product['compareAtPrice']}',
-                                        style: GoogleFonts.poppins(
-                                          decoration: TextDecoration.lineThrough,
-                                          color: AppTheme.secondaryTextColor,
+                                    imageUrl,
+              fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.image_not_supported,
+                                          size: 50,
+                                          color: Colors.grey,
                                         ),
+                                      );
+                                    },
+                                  ),
+                                  Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                colors: [
+                                          Colors.transparent,
+                  Colors.black.withOpacity(0.7),
+                ],
                                       ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    Text(
-                                      '\$${product['price']}',
-                                      style: GoogleFonts.poppins(
-                                        color: product['compareAtPrice'] != null
-                                            ? AppTheme.saleColor
-                                            : AppTheme.accentColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+              ),
+            ),
+                                  Positioned(
+                                    bottom: 12,
+                                    left: 12,
+                                    right: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          article['title'],
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (publishedAt != null) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            publishedAt,
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                Text(
+                                              'READ MORE',
+                                              style: GoogleFonts.poppins(
+                    color: Colors.white,
+                                                fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                                            const SizedBox(width: 4),
+                                            const Icon(
+                                              Icons.arrow_forward,
+                    color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
                       ),
                     ),
                   );
                 },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlogSection() {
-    final blogPosts = [
-      {
-        'title': 'Stay Cool, Stay Protected: Introducing EleFit Sports Apparel',
-        'image': AppConstants.blogPlaceholder,
-        'content': '''
-Stay ahead of the game with EleFit's latest sports apparel collection. Our innovative fabric technology keeps you cool and protected during intense workouts.
-
-Key Features:
-• Moisture-wicking technology
-• UV protection
-• Breathable mesh panels
-• Anti-odor treatment
-• 4-way stretch fabric
-
-Whether you're hitting the gym, going for a run, or practicing yoga, our sports apparel is designed to enhance your performance while keeping you comfortable.
-        ''',
-      },
-      {
-        'title': 'Beat the Heat: EleFit Cooling Towels Keep You Refreshed',
-        'image': AppConstants.blogPlaceholder,
-        'content': '''
-Discover the secret to staying cool during your workouts with EleFit's revolutionary cooling towels.
-
-Our cooling towels are engineered with advanced fabric technology that:
-• Activates instantly with water
-• Stays cool for hours
-• Provides UPF 50 sun protection
-• Is machine washable and reusable
-• Comes in a compact carrying case
-
-Perfect for outdoor workouts, sports activities, or any time you need to beat the heat.
-        ''',
-      },
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      color: Colors.grey.shade50,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Our amazing media',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '@ELEFITSTORE',
-            style: GoogleFonts.poppins(
-              color: AppTheme.accentColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: blogPosts.length,
-            itemBuilder: (context, index) {
-              final post = blogPosts[index];
-              return Card(
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BlogScreen(
-                          title: post['title']!,
-                          imageUrl: post['image']!,
-                          content: post['content']!,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
-                          child: Image.network(
-                            post['image']!,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post['title']!,
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'READ MORE',
-                              style: GoogleFonts.poppins(
-                                color: AppTheme.accentColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               );
             },
           ),
@@ -730,12 +937,12 @@ Perfect for outdoor workouts, sports activities, or any time you need to beat th
       padding: const EdgeInsets.all(24),
       color: AppTheme.primaryColor,
       child: Column(
-        children: [
-          Text(
+      children: [
+        Text(
             'Sign up & stay ahead.',
             style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),

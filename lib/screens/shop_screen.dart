@@ -33,7 +33,7 @@ class _ShopScreenState extends State<ShopScreen> {
     try {
       final productsData = await _shopifyService.getProducts();
       if (productsData != null) {
-        final List<Product> products = productsData['products']['edges']
+        final List<Product> products = (productsData['products']['edges'] as List)
             .map<Product>((edge) => Product.fromJson(edge))
             .toList();
         setState(() {
@@ -79,10 +79,10 @@ class _ShopScreenState extends State<ShopScreen> {
               ),
             )
           else
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: _buildProductGrid(),
-            ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: _buildProductGrid(),
+          ),
         ],
       ),
     );
@@ -164,7 +164,7 @@ class _ShopScreenState extends State<ShopScreen> {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.68,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -182,106 +182,192 @@ class _ShopScreenState extends State<ShopScreen> {
                     '/product-details',
                     arguments: {
                       'product': {
+                        'id': product.id,
                         'name': product.title,
                         'price': product.price,
                         'image': product.imageUrl,
+                        'images': product.images,
                         'description': product.description,
+                        'compareAtPrice': product.compareAtPrice,
                       },
                     },
                   );
                 },
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Stack(
+                    SizedBox(
+                      height: 150,
+                      child: Stack(
                       children: [
-                        AspectRatio(
-                          aspectRatio: 1,
+                          Positioned.fill(
                           child: Image.network(
-                            product.imageUrl,
+                              product.imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey.shade200,
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  size: 50,
-                                  color: Colors.grey,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          if (product.compareAtPrice != null && product.compareAtPrice! > product.price)
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentColor,
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                              );
-                            },
+                                child: Text(
+                                  '${(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100).round()}% OFF',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
                           ),
                         ),
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: Consumer<WishlistModel>(
-                            builder: (context, wishlist, child) {
-                              final isInWishlist = wishlist.items.any((item) => item.id == product.id);
-                              return IconButton(
-                                icon: Icon(
-                                  isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                  color: isInWishlist ? Colors.red : null,
-                                ),
-                                onPressed: () {
-                                  wishlist.toggleWishlist({
-                                    'id': product.id,
-                                    'title': product.title,
-                                    'price': product.price,
-                                    'imageUrl': product.imageUrl,
-                                    'description': product.description,
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        isInWishlist ? 'Removed from wishlist' : 'Added to wishlist',
-                                        style: GoogleFonts.poppins(),
+                            child: Consumer<WishlistModel>(
+                              builder: (context, wishlist, child) {
+                                final isInWishlist = wishlist.items.any((item) => item.id == product.id);
+                                return IconButton(
+                                  icon: Icon(
+                                    isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                    color: isInWishlist ? Colors.red : null,
+                                  ),
+                                  onPressed: () {
+                                    wishlist.toggleWishlist({
+                                      'id': product.id,
+                                      'title': product.title,
+                                      'price': product.price,
+                                      'imageUrl': product.imageUrl,
+                                      'description': product.description,
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isInWishlist ? 'Removed from wishlist' : 'Added to wishlist',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        duration: const Duration(seconds: 2),
+                                        action: SnackBarAction(
+                                          label: 'VIEW WISHLIST',
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => const WishlistScreen(),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ),
-                                      duration: const Duration(seconds: 2),
-                                      action: SnackBarAction(
-                                        label: 'VIEW WISHLIST',
-                                        onPressed: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const WishlistScreen(),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  padding: const EdgeInsets.all(8),
-                                ),
-                              );
-                            },
+                                    );
+                                  },
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: const EdgeInsets.all(8),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
+                        ],
                         ),
-                      ],
                     ),
-                    Padding(
+                    Expanded(
+                      child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            product.title,
-                            style: Theme.of(context).textTheme.titleMedium,
+                              product.title,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                            const Spacer(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (product.compareAtPrice != null && product.compareAtPrice! > product.price)
+                                      Text(
+                                        '\$${product.compareAtPrice!.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          decoration: TextDecoration.lineThrough,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                           Text(
-                            '\$${product.price.toStringAsFixed(2)}',
+                                      '\$${product.price.toStringAsFixed(2)}',
                             style: TextStyle(
-                              color: AppTheme.accentColor,
+                                        color: product.compareAtPrice != null && product.compareAtPrice! > product.price
+                                            ? AppTheme.saleColor
+                                            : AppTheme.accentColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
                         ],
+                                ),
+                                SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.add_shopping_cart, size: 20),
+                                    onPressed: () {
+                                      context.read<CartModel>().addToCart(
+                                        {
+                                          'id': product.id,
+                                          'title': product.title,
+                                          'price': product.price,
+                                          'imageUrl': product.imageUrl,
+                                          'description': product.description,
+                                        },
+                                        product.id,
+                                        1,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Added to cart',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

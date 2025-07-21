@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/shopify_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../models/cart_model.dart';
-import '../models/wishlist_model.dart';
-import '../models/fitness_model.dart';
+import '../providers/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,369 +15,187 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ShopifyService _shopifyService = ShopifyService();
-  Map<String, dynamic>? _userData;
-  bool _isLoading = true;
+  bool _isAuthenticated = false;
+  String? _userEmail;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _checkAuthStatus();
   }
 
-  Future<void> _loadUserData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      if (token != null) {
-        final userData = await _shopifyService.getCurrentUser(token);
-        setState(() {
-          _userData = userData;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  Future<void> _checkAuthStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final email = prefs.getString('user_email');
+    setState(() {
+      _isAuthenticated = token != null;
+      _userEmail = email;
+    });
   }
 
-  Future<void> _logout() async {
+  Future<void> _signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
-    if (mounted) {
-      // Clear cart and wishlist
-      context.read<CartModel>().clearCart();
-      context.read<WishlistModel>().clearWishlist();
-      Navigator.of(context).pushReplacementNamed('/auth');
-    }
+    await prefs.remove('user_email');
+    setState(() {
+      _isAuthenticated = false;
+      _userEmail = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (_userData == null) {
-      return const AuthScreen();
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'My Profile',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
+        title: const Text('Profile'),
+        actions: _isAuthenticated
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () async {
+                    await _signOut();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Signed out successfully')),
+                      );
+                    }
+                  },
+                ),
+              ]
+            : null,
+      ),
+      body: _isAuthenticated ? _buildProfileContent() : _buildSignInPrompt(),
+    );
+  }
+
+  Widget _buildSignInPrompt() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_circle_outlined,
+            size: 64,
+            color: Theme.of(context).primaryColor.withOpacity(0.5),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Implement settings
+          const SizedBox(height: 16),
+          Text(
+            'Sign in to view your profile',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Access your orders, wishlist, and more',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () async {
+              final result = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (context) => const AuthScreen(),
+                ),
+              );
+              if (result == true) {
+                await _checkAuthStatus();
+              }
             },
+            child: const Text('Sign In'),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadUserData,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildUserHeader(),
-              const SizedBox(height: 24),
-              _buildDashboardStats(),
-              const SizedBox(height: 24),
-              _buildRecentActivity(),
-              const SizedBox(height: 24),
-              _buildWorkoutProgress(),
-              const SizedBox(height: 24),
-              _buildAccountSettings(),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildUserHeader() {
-    return Row(
+  Widget _buildProfileContent() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundColor: AppTheme.primaryColor,
-          child: Text(
-            _userData!['firstName'][0].toUpperCase(),
-            style: GoogleFonts.poppins(
-              fontSize: 32,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+        if (_userEmail != null)
+          ListTile(
+            leading: const Icon(Icons.email),
+            title: Text(_userEmail!),
           ),
+        const Divider(),
+        _buildThemeToggle(context),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.shopping_bag_outlined),
+          title: const Text('My Orders'),
+          onTap: () {
+            // Navigate to orders screen
+          },
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_userData!['firstName']} ${_userData!['lastName']}',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                _userData!['email'],
-                style: GoogleFonts.poppins(
-                  color: AppTheme.secondaryTextColor,
-                ),
-              ),
-            ],
-          ),
+        ListTile(
+          leading: const Icon(Icons.location_on_outlined),
+          title: const Text('Shipping Addresses'),
+          onTap: () {
+            // Navigate to addresses screen
+          },
         ),
-      ],
-    );
-  }
-
-  Widget _buildDashboardStats() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.5,
-      children: [
-        _buildStatCard(
-          'Orders',
-          '${_userData!['orders']?.length ?? 0}',
-          Icons.shopping_bag_outlined,
+        ListTile(
+          leading: const Icon(Icons.payment),
+          title: const Text('Payment Methods'),
+          onTap: () {
+            // Navigate to payment methods screen
+          },
         ),
-        _buildStatCard(
-          'Wishlist',
-          context.watch<WishlistModel>().items.length.toString(),
-          Icons.favorite_outline,
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.settings_outlined),
+          title: const Text('Settings'),
+          onTap: () {
+            // Navigate to settings screen
+          },
         ),
-        _buildStatCard(
-          'Workouts',
-          context.watch<FitnessModel>().workoutPlans.length.toString(),
-          Icons.fitness_center,
+        ListTile(
+          leading: const Icon(Icons.help_outline),
+          title: const Text('Help & Support'),
+          onTap: () {
+            // Navigate to help screen
+          },
         ),
-        _buildStatCard(
-          'Goals',
-          context.watch<FitnessModel>().goals.length.toString(),
-          Icons.flag_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: AppTheme.primaryColor),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                color: AppTheme.secondaryTextColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentActivity() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Recent Activity',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 3,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                  child: Icon(
-                    index == 0 ? Icons.shopping_bag_outlined :
-                    index == 1 ? Icons.fitness_center :
-                    Icons.favorite_outline,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                title: Text(
-                  index == 0 ? 'Order #1234 Delivered' :
-                  index == 1 ? 'Completed Workout' :
-                  'Added item to wishlist',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                subtitle: Text(
-                  '2 hours ago',
-                  style: GoogleFonts.poppins(
-                    color: AppTheme.secondaryTextColor,
-                    fontSize: 12,
-                  ),
-                ),
-                trailing: Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.secondaryTextColor,
-                ),
-                onTap: () {
-                  // TODO: Navigate to activity detail
-                },
+        ListTile(
+          leading: const Icon(Icons.logout),
+          title: const Text('Sign Out'),
+          onTap: () async {
+            await _signOut();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Signed out successfully')),
               );
-            },
-          ),
+            }
+          },
         ),
       ],
     );
   }
 
-  Widget _buildWorkoutProgress() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Workout Progress',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+  Widget _buildThemeToggle(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final isDark = themeProvider.themeMode == ThemeMode.dark;
+        return ListTile(
+          leading: Icon(
+            isDark ? Icons.dark_mode : Icons.light_mode,
+            color: Theme.of(context).iconTheme.color,
           ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Weekly Goal',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '4/5 workouts',
-                      style: GoogleFonts.poppins(
-                        color: AppTheme.accentColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: 0.8,
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
-                ),
-              ],
-            ),
+          title: Text(
+            'Dark Mode',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccountSettings() {
-    final settings = [
-      {'title': 'Edit Profile', 'icon': Icons.person_outline},
-      {'title': 'Order History', 'icon': Icons.history},
-      {'title': 'Shipping Addresses', 'icon': Icons.location_on_outlined},
-      {'title': 'Payment Methods', 'icon': Icons.payment},
-      {'title': 'Notifications', 'icon': Icons.notifications_outlined},
-      {'title': 'Privacy Settings', 'icon': Icons.privacy_tip_outlined},
-      {'title': 'Help & Support', 'icon': Icons.help_outline},
-      {'title': 'Logout', 'icon': Icons.logout},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Account Settings',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: settings.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              final setting = settings[index];
-              return ListTile(
-                leading: Icon(
-                  setting['icon'] as IconData,
-                  color: setting['title'] == 'Logout' ? Colors.red : AppTheme.primaryColor,
-                ),
-                title: Text(
-                  setting['title'] as String,
-                  style: GoogleFonts.poppins(
-                    color: setting['title'] == 'Logout' ? Colors.red : null,
-                  ),
-                ),
-                trailing: Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.secondaryTextColor,
-                ),
-                onTap: () {
-                  if (setting['title'] == 'Logout') {
-                    _logout();
-                  }
-                  // TODO: Implement other settings
-                },
-              );
+          trailing: Switch(
+            value: isDark,
+            onChanged: (value) {
+              themeProvider.toggleTheme();
             },
+            activeColor: AppTheme.accentColor,
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 } 
