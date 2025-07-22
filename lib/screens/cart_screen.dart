@@ -3,12 +3,20 @@ import 'package:provider/provider.dart';
 import '../models/cart_model.dart';
 import '../theme/app_theme.dart';
 import 'webview_checkout_screen.dart';
+import '../services/shopify_service.dart'; // Added import for ShopifyService
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
 
   // Shopify checkout URL with proper encoding
   static const String shopifyCheckoutUrl = 'https://theelefit.com/checkouts/cn/Z2NwLXVzLWVhc3QxOjAxSldZMTlUWVlSQjc4VldKTktGN01ZTjQ3';
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  bool _isLoading = false; // Added state variable for loading
 
   @override
   Widget build(BuildContext context) {
@@ -302,22 +310,75 @@ class CartScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                debugPrint('Opening checkout URL: $shopifyCheckoutUrl');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WebViewCheckoutScreen(
-                      checkoutUrl: shopifyCheckoutUrl,
-                    ),
-                  ),
-                );
+              onPressed: () async {
+                setState(() {
+                  _isLoading = true;
+                });
+                try {
+                  final shopifyService = context.read<ShopifyService>();
+                  final cartItems = cart.items.map((item) => {
+                    'variantId': item.variantId,
+                    'quantity': item.quantity,
+                  }).toList();
+
+                  final checkoutUrl = await shopifyService.createCheckout(cartItems);
+                  
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                    });
+
+                    if (checkoutUrl != null) {
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WebViewCheckoutScreen(
+                            checkoutUrl: checkoutUrl,
+                          ),
+                        ),
+                      );
+
+                      if (result == true) {
+                        // Order completed successfully, cart was already cleared
+                        Navigator.of(context).pop(); // Return to previous screen
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to create checkout. Please try again.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 minimumSize: const Size(double.infinity, 0),
               ),
-              child: const Text('Proceed to Checkout'),
+              child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text('Proceed to Checkout'),
             ),
           ],
         ),

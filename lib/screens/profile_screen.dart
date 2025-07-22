@@ -6,6 +6,8 @@ import 'auth_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../providers/location_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -121,6 +123,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         const Divider(),
         _buildThemeToggle(context),
+        if (kIsWeb) ...[
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Select Region'),
+            trailing: DropdownButton<String>(
+              value: context.watch<LocationProvider>().countryCode,
+              items: const [
+                DropdownMenuItem(value: 'US', child: Text('United States (USD)')),
+                DropdownMenuItem(value: 'IN', child: Text('India (INR)')),
+              ],
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  context.read<LocationProvider>().setCountry(newValue);
+                }
+              },
+            ),
+          ),
+        ],
         const Divider(),
         ListTile(
           leading: const Icon(Icons.shopping_bag_outlined),

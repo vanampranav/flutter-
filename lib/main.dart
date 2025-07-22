@@ -15,22 +15,10 @@ import 'widgets/bottom_nav_bar.dart';
 import 'services/shopify_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'providers/location_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize WebView platform
-  if (WebViewPlatform.instance == null) {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      WebViewPlatform.instance = AndroidWebViewPlatform();
-    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      WebViewPlatform.instance = WebKitWebViewPlatform();
-    }
-  }
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -48,9 +36,22 @@ void main() async {
     ),
   );
 
+  // Initialize Shopify service
   final shopifyService = ShopifyService();
   await shopifyService.initialize();
-  runApp(const MyApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (ctx) => CartModel()),
+        ChangeNotifierProvider(create: (ctx) => WishlistModel()),
+        ChangeNotifierProvider(create: (ctx) => ThemeProvider()),
+        ChangeNotifierProvider(create: (ctx) => LocationProvider()),
+        Provider.value(value: shopifyService),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -58,50 +59,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (ctx) => CartModel()),
-        ChangeNotifierProvider(create: (ctx) => WishlistModel()),
-        ChangeNotifierProvider(create: (ctx) => ThemeProvider()),
-      ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return MaterialApp(
-        title: 'EleFit',
-        theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            debugShowCheckedModeBanner: false,
-        home: const MainScreen(),
-            routes: {
-              '/auth': (context) => const AuthScreen(),
-            },
-        onGenerateRoute: (settings) {
-          if (settings.name == '/product-details') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  ProductDetailsScreen(product: args['product']),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                const begin = Offset(1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.easeInOut;
-                var tween = Tween(begin: begin, end: end).chain(
-                  CurveTween(curve: curve),
-                );
-                var offsetAnimation = animation.drive(tween);
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: child,
-                );
-              },
-            );
-          }
-          return null;
-            },
-          );
-        },
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'EleFit',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+          debugShowCheckedModeBanner: false,
+          home: const MainScreen(),
+          routes: {
+            '/auth': (context) => const AuthScreen(),
+          },
+          onGenerateRoute: (settings) {
+            if (settings.name == '/product-details') {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (context) => ProductDetailsScreen(product: args['product']),
+              );
+            }
+            return null;
+          },
+        );
+      },
     );
   }
 }
@@ -147,16 +127,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) async {
-    // Check if trying to access profile screen
     if (index == 4 && !_isAuthenticated) {
-      // Show auth screen and wait for result
       final result = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (context) => const AuthScreen(),
         ),
       );
       
-      // Update auth status and navigate if login was successful
       if (result == true) {
         await _checkAuthStatus();
         setState(() {
