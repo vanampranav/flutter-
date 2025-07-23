@@ -28,6 +28,14 @@ class ShopifyService {
     _client = GraphQLClient(
       cache: GraphQLCache(),
       link: httpLink,
+      defaultPolicies: DefaultPolicies(
+        query: Policies(
+          fetch: FetchPolicy.noCache,
+        ),
+        mutate: Policies(
+          fetch: FetchPolicy.noCache,
+        ),
+      ),
     );
 
     _isInitialized = true;
@@ -41,29 +49,28 @@ class ShopifyService {
   }
 
   Future<String?> createCheckout(List<Map<String, dynamic>> items) async {
-    // First create a cart
-    const String createCartMutation = '''
-      mutation cartCreate {
-        cartCreate {
-          cart {
-            id
-            checkoutUrl
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    ''';
-
     try {
       final graphQLClient = await client;
       
-      // Debug log the items
+      // Create cart mutation
+      const String createCartMutation = '''
+        mutation cartCreate {
+          cartCreate {
+            cart {
+              id
+              checkoutUrl
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      ''';
+
       print('Creating cart with items: $items');
 
-      // Create the cart first
+      // Create cart
       final createCartResult = await graphQLClient.mutate(
         MutationOptions(
           document: gql(createCartMutation),
@@ -75,13 +82,15 @@ class ShopifyService {
         return null;
       }
 
-      final cartId = createCartResult.data?['cartCreate']['cart']['id'] as String?;
-      if (cartId == null) {
-        print('No cart ID returned');
+      final cartData = createCartResult.data?['cartCreate'];
+      if (cartData == null || cartData['cart'] == null) {
+        print('Invalid cart data received');
         return null;
       }
 
-      // Now add lines to the cart
+      final cartId = cartData['cart']['id'] as String;
+      
+      // Add lines mutation
       const String addLinesMutation = '''
         mutation cartLinesAdd(\$cartId: ID!, \$lines: [CartLineInput!]!) {
           cartLinesAdd(cartId: \$cartId, lines: \$lines) {
@@ -96,11 +105,6 @@ class ShopifyService {
                     merchandise {
                       ... on ProductVariant {
                         id
-                        title
-                        price {
-                          amount
-                          currencyCode
-                        }
                       }
                     }
                   }
@@ -115,12 +119,15 @@ class ShopifyService {
         }
       ''';
 
-      // Format the line items
+      // Format line items - ensure proper variant ID format
       final lines = items.map((item) {
-        String variantId = item['variantId'];
-        if (!variantId.startsWith('gid://')) {
+        String variantId = item['variantId'].toString();
+        
+        // If the ID is just a number, convert it to the full Shopify Global ID format
+        if (variantId.contains('/') == false) {
           variantId = 'gid://shopify/ProductVariant/$variantId';
         }
+        
         return {
           'merchandiseId': variantId,
           'quantity': item['quantity'],
@@ -129,6 +136,7 @@ class ShopifyService {
 
       print('Adding lines to cart: $lines');
 
+      // Add items to cart
       final addLinesResult = await graphQLClient.mutate(
         MutationOptions(
           document: gql(addLinesMutation),
@@ -144,8 +152,26 @@ class ShopifyService {
         return null;
       }
 
-      // Get the checkout URL from the cart
-      final checkoutUrl = addLinesResult.data?['cartLinesAdd']['cart']['checkoutUrl'] as String?;
+      final addLinesData = addLinesResult.data?['cartLinesAdd'];
+      if (addLinesData == null) {
+        print('Invalid response data received');
+        print('Response data: ${addLinesResult.data}');
+        return null;
+      }
+
+      if (addLinesData['userErrors'] != null && 
+          (addLinesData['userErrors'] as List).isNotEmpty) {
+        print('Cart line errors: ${addLinesData['userErrors']}');
+        return null;
+      }
+
+      if (addLinesData['cart'] == null) {
+        print('Invalid cart data received after adding lines');
+        print('Response data: ${addLinesResult.data}');
+        return null;
+      }
+
+      final checkoutUrl = addLinesData['cart']['checkoutUrl'] as String?;
       if (checkoutUrl == null) {
         print('No checkout URL returned');
         return null;
@@ -160,10 +186,44 @@ class ShopifyService {
     }
   }
 
-  Future<Map<String, dynamic>?> getProducts() async {
-    const String query = '''
+  Future<bool> testConnection() async {
+    const String testQuery = '''
       query {
-        products(first: 20) {
+        shop {
+          name
+          primaryDomain {
+            url
+          }
+        }
+      }
+    ''';
+
+    try {
+      final graphQLClient = await client;
+      final result = await graphQLClient.query(
+        QueryOptions(
+          document: gql(testQuery),
+          fetchPolicy: FetchPolicy.noCache,
+        ),
+      );
+
+      if (result.hasException) {
+        print('API Test Error: ${result.exception}');
+        return false;
+      }
+
+      print('API Test Success: ${result.data}');
+      return true;
+    } catch (e) {
+      print('API Test Exception: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getProducts({int first = 20, String? collectionId}) async {
+    String query = '''
+      query {
+        products(first: $first${collectionId != null ? ', query: "collection_id:$collectionId"' : ''}) {
           edges {
             node {
               id
@@ -211,7 +271,7 @@ class ShopifyService {
       final graphQLClient = await client;
       final QueryOptions options = QueryOptions(
         document: gql(query),
-        fetchPolicy: FetchPolicy.networkOnly,
+        fetchPolicy: FetchPolicy.noCache,
       );
 
       final QueryResult result = await graphQLClient.query(options);

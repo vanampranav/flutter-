@@ -111,6 +111,15 @@ class CartModel with ChangeNotifier {
   double get totalPrice => total;
 
   void addToCart(Map<String, dynamic> product, String variantId, int quantity, {String size = 'M'}) {
+    // Clean up the variant ID - ensure it's in the correct format
+    if (!variantId.startsWith('gid://shopify/ProductVariant/')) {
+      // Remove any existing Shopify prefix
+      variantId = variantId.replaceAll('gid://shopify/Product/', '');
+      variantId = variantId.replaceAll('gid://shopify/ProductVariant/', '');
+      // Add the correct prefix
+      variantId = 'gid://shopify/ProductVariant/$variantId';
+    }
+    
     final existingIndex = _items.indexWhere((item) => 
       item.variantId == variantId && item.size == size
     );

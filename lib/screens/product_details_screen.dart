@@ -19,20 +19,47 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
-  int _selectedSize = 1;
+  int _selectedSize = 0;
   int _quantity = 1;
   bool _isInWishlist = false;
-  late List<String> _sizes;
   late String _selectedVariantId;
   int _currentImageIndex = 0;
   late List<String> _productImages;
+  List<Map<String, dynamic>>? _variants;
 
   @override
   void initState() {
     super.initState();
-    _sizes = ['S', 'M', 'L', 'XL'];
-    _selectedVariantId = widget.product['variants']?[0]?['id'] ?? '';
+    _initializeProductData();
+  }
+
+  void _initializeProductData() {
+    // Initialize variants
+    if (widget.product['variants'] != null && 
+        widget.product['variants']['edges'] != null) {
+      _variants = (widget.product['variants']['edges'] as List)
+          .map((edge) => edge['node'] as Map<String, dynamic>)
+          .toList();
+    } else {
+      _variants = [];
+    }
+
+    // Set initial variant ID
+    _selectedVariantId = _variants?.isNotEmpty == true 
+        ? _variants![0]['id'] 
+        : '';
+
+    // Initialize images
     _productImages = List<String>.from(widget.product['images'] ?? [widget.product['image']]);
+  }
+
+  void _updateSelectedVariant(int variantIndex) {
+    if (_variants?.isNotEmpty == true && variantIndex < _variants!.length) {
+      setState(() {
+        _selectedSize = variantIndex;
+        _selectedVariantId = _variants![variantIndex]['id'];
+      });
+    }
   }
 
   @override
@@ -243,35 +270,42 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildSizeSelector() {
+    if (_variants == null || _variants!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Select Size',
+            'Select Variant',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
-          Row(
-            children: List.generate(
-              _sizes.length,
-              (index) => Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: ChoiceChip(
-                  label: Text(_sizes[index]),
-                  selected: _selectedSize == index,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedSize = index;
-                    });
-                  },
-                  backgroundColor: Colors.grey.shade100,
-                  selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                  labelStyle: TextStyle(
-                    color: _selectedSize == index
-                        ? AppTheme.primaryColor
-                        : AppTheme.textColor,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(
+                _variants!.length,
+                (index) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: ChoiceChip(
+                    label: Text(_variants![index]['title'] ?? 'Variant ${index + 1}'),
+                    selected: _selectedSize == index,
+                    onSelected: (selected) {
+                      if (selected) {
+                        _updateSelectedVariant(index);
+                      }
+                    },
+                    backgroundColor: Colors.grey.shade100,
+                    selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                    labelStyle: TextStyle(
+                      color: _selectedSize == index
+                          ? AppTheme.primaryColor
+                          : AppTheme.textColor,
+                    ),
                   ),
                 ),
               ),
@@ -387,19 +421,29 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
+                  if (_variants?.isEmpty ?? true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No product variants available'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
                   final cartModel = context.read<CartModel>();
                   cartModel.addToCart(
                     {
-                      'id': widget.product['id'] ?? '',
+                      'id': widget.product['id'],
                       'title': widget.product['name'] ?? '',
                       'price': widget.product['price'] ?? 0.0,
                       'imageUrl': widget.product['image'] ?? '',
                       'description': widget.product['description'] ?? '',
                     },
-                    widget.product['id'] ?? DateTime.now().toString(), // Fallback ID if none provided
+                    _selectedVariantId,
                     _quantity,
-                    size: _sizes[_selectedSize],
                   );
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Added to cart'),
@@ -407,7 +451,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       action: SnackBarAction(
                         label: 'VIEW CART',
                         onPressed: () {
-                          // Navigate to cart screen
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => const CartScreen(),

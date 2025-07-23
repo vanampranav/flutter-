@@ -21,7 +21,6 @@ class WebViewCheckoutScreen extends StatefulWidget {
 class _WebViewCheckoutScreenState extends State<WebViewCheckoutScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
-  String _currentUrl = '';
 
   @override
   void initState() {
@@ -38,15 +37,13 @@ class _WebViewCheckoutScreenState extends State<WebViewCheckoutScreen> {
             onPageStarted: (String url) {
               setState(() {
                 _isLoading = true;
-                _currentUrl = url;
               });
             },
             onPageFinished: (String url) {
               setState(() {
                 _isLoading = false;
-                _currentUrl = url;
               });
-              if (url.contains('/thank_you') || url.contains('/orders/')) {
+              if (url.contains('/thank_you')) {
                 // Order completed successfully
                 context.read<CartModel>().clearCart();
                 Navigator.of(context).pop(true);
@@ -59,14 +56,7 @@ class _WebViewCheckoutScreenState extends State<WebViewCheckoutScreen> {
               }
             },
             onNavigationRequest: (NavigationRequest request) {
-              // Handle external links (like payment gateways) that need to open in browser
-              if (request.url.contains('tel:') || 
-                  request.url.contains('mailto:') ||
-                  request.url.contains('sms:') ||
-                  request.url.contains('maps:')) {
-                launchUrl(Uri.parse(request.url));
-                return NavigationDecision.prevent;
-              }
+              // Allow all navigation within the checkout process
               return NavigationDecision.navigate;
             },
           ),
@@ -193,15 +183,6 @@ class _WebViewCheckoutScreenState extends State<WebViewCheckoutScreen> {
               }
             },
           ),
-          actions: [
-            if (_currentUrl.isNotEmpty && !_currentUrl.contains(widget.checkoutUrl))
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  _controller.reload();
-                },
-              ),
-          ],
         ),
         body: Stack(
           children: [
@@ -210,15 +191,8 @@ class _WebViewCheckoutScreenState extends State<WebViewCheckoutScreen> {
               Container(
                 color: Colors.white,
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppTheme.accentColor,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Loading secure checkout...'),
-                    ],
+                  child: CircularProgressIndicator(
+                    color: AppTheme.accentColor,
                   ),
                 ),
               ),

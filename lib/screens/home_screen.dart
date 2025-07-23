@@ -8,6 +8,7 @@ import '../models/cart_model.dart';
 import '../models/wishlist_model.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/location_provider.dart';
+import '../screens/shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -132,27 +133,25 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverAppBar(
       floating: true,
       pinned: true,
+      backgroundColor: Colors.white,
+      elevation: 0,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.fitness_center, color: AppTheme.primaryColor),
-          const SizedBox(width: 8),
-          Text(
-            AppConstants.appName,
-            style: GoogleFonts.poppins(
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.bold,
-            ),
+          Image.asset(
+            'assets/images/elefit_logo.png',
+            height: 32,
+            fit: BoxFit.contain,
           ),
         ],
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search, color: AppTheme.primaryColor),
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(Icons.notifications_outlined),
+          icon: const Icon(Icons.notifications_outlined, color: AppTheme.primaryColor),
           onPressed: () {},
         ),
       ],
@@ -312,8 +311,19 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               final category = categories[index];
               return Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ShopScreen(),
+                      ),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -366,9 +376,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {},
-                  child: Text(
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ShopScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: Text(
                     'Shop all',
                     style: GoogleFonts.poppins(),
                   ),
@@ -421,6 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           .map((edge) => edge['node']['url'] as String)
                           .toList(),
                       'description': product['description'],
+                      'variants': product['variants'],  // Add this line to include variants
                     },
                   },
                 );
@@ -518,29 +537,41 @@ class _HomeScreenState extends State<HomeScreen> {
                               IconButton(
                                 icon: const Icon(Icons.add_shopping_cart),
                                 onPressed: () {
-                                  context.read<CartModel>().addToCart(
-                                    {
-                                      'id': product['id'],
-                                      'title': product['title'],
-                                      'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
-                                      'imageUrl': product['images']['edges'].isNotEmpty 
-                                          ? product['images']['edges'][0]['node']['url'] 
-                                          : AppConstants.productPlaceholder,
-                                      'description': product['description'],
-                                      'variantId': product['variants']['edges'][0]['node']['id'], // Add the variant ID
-                                    },
-                                    product['variants']['edges'][0]['node']['id'], // Use the variant ID as the cart item ID
-                                    1,
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Added to cart',
-                                        style: GoogleFonts.poppins(),
+                                  final variants = product['variants']['edges'];
+                                  if (variants != null && variants.isNotEmpty) {
+                                    // Extract just the numeric ID from the variant ID
+                                    final variantId = variants[0]['node']['id'].toString();
+                                    final numericId = variantId.split('/').last;
+                                    context.read<CartModel>().addToCart(
+                                      {
+                                        'id': product['id'],
+                                        'title': product['title'],
+                                        'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                        'imageUrl': product['images']['edges'].isNotEmpty 
+                                            ? product['images']['edges'][0]['node']['url'] 
+                                            : AppConstants.productPlaceholder,
+                                        'description': product['description'],
+                                      },
+                                      numericId,
+                                      1,
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Added to cart',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        duration: const Duration(seconds: 2),
                                       ),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Product variant not available'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 },
                                 style: IconButton.styleFrom(
                                   backgroundColor: AppTheme.primaryColor,
@@ -711,47 +742,58 @@ class _HomeScreenState extends State<HomeScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  context.read<LocationProvider>().formatPrice(
-                                    double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0
-                                  ),
-                                  style: GoogleFonts.poppins(
-                                    color: AppTheme.accentColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    context.read<LocationProvider>().formatPrice(
+                                      double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0
+                                    ),
+                                    style: GoogleFonts.poppins(
+                                      color: AppTheme.accentColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.add_shopping_cart),
-                                  onPressed: () {
-                                    context.read<CartModel>().addToCart(
-                                      {
-                                        'id': product['id'],
-                                        'title': product['title'],
-                                        'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
-                                        'imageUrl': product['images']['edges'].isNotEmpty 
-                                            ? product['images']['edges'][0]['node']['url'] 
-                                            : AppConstants.productPlaceholder,
-                                        'description': product['description'],
-                                        'variantId': product['variants']['edges'][0]['node']['id'], // Add the variant ID
-                                      },
-                                      product['variants']['edges'][0]['node']['id'], // Use the variant ID as the cart item ID
-                                      1,
-                                    );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Added to cart',
-                                          style: GoogleFonts.poppins(),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.add_shopping_cart, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      context.read<CartModel>().addToCart(
+                                        {
+                                          'id': product['id'],
+                                          'title': product['title'],
+                                          'price': double.tryParse(product['priceRange']['minVariantPrice']['amount'].toString()) ?? 0.0,
+                                          'imageUrl': product['images']['edges'].isNotEmpty 
+                                              ? product['images']['edges'][0]['node']['url'] 
+                                              : AppConstants.productPlaceholder,
+                                          'description': product['description'],
+                                          'variantId': product['variants']['edges'][0]['node']['id'], // Add the variant ID
+                                        },
+                                        product['variants']['edges'][0]['node']['id'], // Use the variant ID as the cart item ID
+                                        1,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Added to cart',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          duration: const Duration(seconds: 2),
                                         ),
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  },
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryColor,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.all(8),
+                                      );
+                                    },
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(8),
+                                    ),
                                   ),
                                 ),
                               ],

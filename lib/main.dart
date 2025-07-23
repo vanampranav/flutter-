@@ -30,7 +30,7 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
       systemNavigationBarColor: AppTheme.surfaceColor,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
@@ -39,6 +39,10 @@ void main() async {
   // Initialize Shopify service
   final shopifyService = ShopifyService();
   await shopifyService.initialize();
+
+  // Test API connection
+  final isConnected = await shopifyService.testConnection();
+  print('Shopify API Connection Test: ${isConnected ? 'Success' : 'Failed'}');
 
   runApp(
     MultiProvider(
