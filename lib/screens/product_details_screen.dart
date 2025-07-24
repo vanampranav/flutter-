@@ -5,6 +5,14 @@ import '../theme/app_theme.dart';
 import '../models/product_model.dart';
 import 'cart_screen.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
+import '../widgets/main_layout.dart';
+import '../models/wishlist_model.dart';
+import '../providers/location_provider.dart';
+import '../screens/home_screen.dart';
+import '../screens/shop_screen.dart';
+import '../screens/wishlist_screen.dart';
+import '../screens/profile_screen.dart';
+import '../widgets/bottom_nav_bar.dart'; // Added import for AnimatedBottomNavBar
 
 class ProductDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -62,12 +70,47 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
+  void _navigateToCart() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => MainLayout(
+          currentIndex: 3, // Cart tab
+          child: const CartScreen(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          SliverAppBar(
+            expandedHeight: 0,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  _isInWishlist ? Icons.favorite : Icons.favorite_border,
+                  color: _isInWishlist ? Colors.red : null,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isInWishlist = !_isInWishlist;
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () {},
+              ),
+            ],
+          ),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,7 +126,79 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, -4),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Price',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    Consumer<LocationProvider>(
+                      builder: (context, locationProvider, child) {
+                        return Text(
+                          locationProvider.formatPrice(widget.product['price'] ?? 0.0),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: AppTheme.accentColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final cartModel = context.read<CartModel>();
+                  cartModel.addToCart(
+                    {
+                      'id': widget.product['id'],
+                      'title': widget.product['name'] ?? '',
+                      'price': widget.product['price'] ?? 0.0,
+                      'imageUrl': widget.product['image'] ?? '',
+                      'description': widget.product['description'] ?? '',
+                    },
+                    _selectedVariantId,
+                    _quantity,
+                  );
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Added to cart'),
+                      duration: const Duration(seconds: 2),
+                      action: SnackBarAction(
+                        label: 'VIEW CART',
+                        onPressed: _navigateToCart,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                ),
+                child: const Text('Add to Cart'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -299,13 +414,27 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         _updateSelectedVariant(index);
                       }
                     },
-                    backgroundColor: Colors.grey.shade100,
-                    selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkGrey
+                        : Colors.grey.shade100,
+                    selectedColor: AppTheme.accentColor.withOpacity(0.2),
                     labelStyle: TextStyle(
                       color: _selectedSize == index
-                          ? AppTheme.primaryColor
-                          : AppTheme.textColor,
+                          ? AppTheme.accentColor
+                          : Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.textColor
+                              : AppTheme.lightTextColor,
+                      fontWeight: _selectedSize == index ? FontWeight.bold : FontWeight.normal,
                     ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: _selectedSize == index
+                            ? AppTheme.accentColor
+                            : Colors.transparent,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
               ),
@@ -389,87 +518,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, -4),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.chat_outlined),
-                onPressed: () {},
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_variants?.isEmpty ?? true) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('No product variants available'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final cartModel = context.read<CartModel>();
-                  cartModel.addToCart(
-                    {
-                      'id': widget.product['id'],
-                      'title': widget.product['name'] ?? '',
-                      'price': widget.product['price'] ?? 0.0,
-                      'imageUrl': widget.product['image'] ?? '',
-                      'description': widget.product['description'] ?? '',
-                    },
-                    _selectedVariantId,
-                    _quantity,
-                  );
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Added to cart'),
-                      duration: const Duration(seconds: 2),
-                      action: SnackBarAction(
-                        label: 'VIEW CART',
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const CartScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('Add to Cart'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _getPageForIndex(int index) {
+    switch (index) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return const ShopScreen();
+      case 2:
+        return const WishlistScreen();
+      case 3:
+        return const CartScreen();
+      case 4:
+        return const ProfileScreen();
+      default:
+        return const HomeScreen();
+    }
   }
 } 

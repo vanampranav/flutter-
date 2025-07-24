@@ -5,17 +5,13 @@ import 'models/wishlist_model.dart';
 import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
-import 'screens/wishlist_screen.dart';
-import 'screens/cart_screen.dart';
 import 'screens/product_details_screen.dart';
-import 'screens/shop_screen.dart';
-import 'screens/profile_screen.dart';
 import 'theme/app_theme.dart';
-import 'widgets/bottom_nav_bar.dart';
 import 'services/shopify_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'providers/location_provider.dart';
+import 'widgets/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,109 +67,24 @@ class MyApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
           debugShowCheckedModeBanner: false,
-          home: const MainScreen(),
-          routes: {
-            '/auth': (context) => const AuthScreen(),
-          },
+          home: MainLayout(
+            currentIndex: 0,
+            child: const HomeScreen(),
+          ),
           onGenerateRoute: (settings) {
             if (settings.name == '/product-details') {
               final args = settings.arguments as Map<String, dynamic>;
               return MaterialPageRoute(
-                builder: (context) => ProductDetailsScreen(product: args['product']),
+                builder: (context) => MainLayout(
+                  currentIndex: 1, // Shop tab
+                  child: ProductDetailsScreen(product: args['product']),
+                ),
               );
             }
             return null;
           },
         );
       },
-    );
-  }
-}
-
-class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-  final PageController _pageController = PageController();
-  bool _isAuthenticated = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthStatus();
-  }
-
-  Future<void> _checkAuthStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    setState(() {
-      _isAuthenticated = token != null;
-    });
-  }
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const ShopScreen(),
-    const WishlistScreen(),
-    const CartScreen(),
-    const ProfileScreen(),
-  ];
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onItemTapped(int index) async {
-    if (index == 4 && !_isAuthenticated) {
-      final result = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (context) => const AuthScreen(),
-        ),
-      );
-      
-      if (result == true) {
-        await _checkAuthStatus();
-        setState(() {
-          _selectedIndex = index;
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        });
-      }
-      return;
-    }
-
-    setState(() {
-      _selectedIndex = index;
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: _screens,
-      ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemSelected: _onItemTapped,
-      ),
     );
   }
 }

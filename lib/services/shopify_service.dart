@@ -123,8 +123,12 @@ class ShopifyService {
       final lines = items.map((item) {
         String variantId = item['variantId'].toString();
         
-        // If the ID is just a number, convert it to the full Shopify Global ID format
-        if (variantId.contains('/') == false) {
+        // If the ID doesn't have the proper Shopify format, add it
+        if (!variantId.startsWith('gid://shopify/ProductVariant/')) {
+          // Remove any existing Shopify prefix if present
+          variantId = variantId.replaceAll('gid://shopify/ProductVariant/', '');
+          variantId = variantId.replaceAll('gid://shopify/Product/', '');
+          // Add the correct prefix
           variantId = 'gid://shopify/ProductVariant/$variantId';
         }
         

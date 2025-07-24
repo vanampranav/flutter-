@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/shopify_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -84,8 +85,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           final token = result['customerAccessTokenCreate']['customerAccessToken']['accessToken'];
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
+          await prefs.setString('user_email', _emailController.text);
           if (mounted) {
-            Navigator.of(context).pop(true); // Return true to indicate successful login
+            Navigator.of(context).pop(true);
           }
         } else {
           _showError('Invalid email or password');
@@ -99,7 +101,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         );
 
         if (result != null && result['customerCreate']['customer'] != null) {
-          // Auto login after registration
           final loginResult = await _shopifyService.customerAccessTokenCreate(
             email: _emailController.text,
             password: _passwordController.text,
@@ -109,8 +110,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             final token = loginResult['customerAccessTokenCreate']['customerAccessToken']['accessToken'];
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('auth_token', token);
+            await prefs.setString('user_email', _emailController.text);
             if (mounted) {
-              Navigator.of(context).pop(true); // Return true to indicate successful login
+              Navigator.of(context).pop(true);
             }
           }
         } else {
@@ -139,23 +141,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.of(context).pop(false); // Return false to indicate login was cancelled
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.of(context).pop(false); // Return false to indicate login was cancelled
-            },
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
         ),
-        extendBodyBehindAppBar: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -175,7 +172,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                    const SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   _buildLogo(),
                   const SizedBox(height: 48),
                   FadeTransition(
@@ -186,7 +183,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ],
-                ),
               ),
             ),
           ),
@@ -198,10 +194,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Widget _buildLogo() {
     return Column(
       children: [
-        Icon(
-          Icons.fitness_center,
-          size: 64,
-          color: Colors.white.withOpacity(0.9),
+        Image.asset(
+          'assets/images/elefit_logo.png',
+          height: 80,
+          width: 80,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 16),
         Text(
@@ -232,22 +229,22 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isLogin ? 'Welcome Back' : 'Create Account',
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-                controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _isLogin ? 'Welcome Back' : 'Create Account',
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
               ),
-              keyboardType: TextInputType.emailAddress,
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your email';
@@ -257,7 +254,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   }
                   return null;
                 },
-            ),
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
@@ -304,86 +301,38 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     }
                     return null;
                   },
-              ),
-            ],
-            const SizedBox(height: 24),
-            ElevatedButton(
+                ),
+              ],
+              const SizedBox(height: 24),
+              ElevatedButton(
                 onPressed: _isLoading ? null : _submitForm,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(_isLogin ? 'Login' : 'Sign Up'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _switchAuthMode,
-              child: Text(
-                _isLogin
-                    ? 'Don\'t have an account? Sign Up'
-                    : 'Already have an account? Login',
               ),
-            ),
-            if (_isLogin) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               TextButton(
+                onPressed: _switchAuthMode,
+                child: Text(
+                  _isLogin
+                      ? 'Don\'t have an account? Sign Up'
+                      : 'Already have an account? Login',
+                ),
+              ),
+              if (_isLogin) ...[
+                const SizedBox(height: 8),
+                TextButton(
                   onPressed: () {
                     // TODO: Implement forgot password
                   },
-                child: const Text('Forgot Password?'),
-              ),
+                  child: const Text('Forgot Password?'),
+                ),
+              ],
             ],
-            const SizedBox(height: 16),
-            _buildSocialLogin(),
-          ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialLogin() {
-    return Column(
-      children: [
-        const Text('Or continue with'),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildSocialButton(
-              icon: Icons.g_mobiledata,
-              label: 'Google',
-              onPressed: () {
-                // TODO: Implement Google sign in
-              },
-            ),
-            _buildSocialButton(
-              icon: Icons.facebook,
-              label: 'Facebook',
-              onPressed: () {
-                // TODO: Implement Facebook sign in
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 12,
         ),
       ),
     );

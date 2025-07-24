@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import '../models/cart_model.dart';
 import '../theme/app_theme.dart';
 import 'webview_checkout_screen.dart';
-import '../services/shopify_service.dart'; // Added import for ShopifyService
+import '../services/shopify_service.dart';
+import '../providers/location_provider.dart'; // Add this import
+import 'shop_screen.dart'; // Added import for ShopScreen
+import '../widgets/main_layout.dart'; // Fixed import path for MainLayout
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -81,7 +84,14 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
-              // Navigate to shop
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => MainLayout(
+                    currentIndex: 1, // Shop tab
+                    child: const ShopScreen(),
+                  ),
+                ),
+              );
             },
             child: const Text('Start Shopping'),
           ),
@@ -91,6 +101,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildCartItems(BuildContext context, CartModel cart) {
+    final locationProvider = context.watch<LocationProvider>();
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: cart.items.length,
@@ -184,7 +195,7 @@ class _CartScreenState extends State<CartScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '\$${(item.price * item.quantity).toStringAsFixed(2)}',
+                              locationProvider.formatPrice(item.price * item.quantity),
                               style: TextStyle(
                                 color: AppTheme.accentColor,
                                 fontWeight: FontWeight.bold,
@@ -244,6 +255,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildCartSummary(BuildContext context, CartModel cart) {
+    final locationProvider = context.watch<LocationProvider>();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -264,7 +276,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text('Subtotal'),
                 Text(
-                  '\$${cart.subtotal.toStringAsFixed(2)}',
+                  locationProvider.formatPrice(cart.subtotal),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -275,7 +287,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text('Shipping'),
                 Text(
-                  '\$${cart.shipping.toStringAsFixed(2)}',
+                  locationProvider.formatPrice(cart.shipping),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -286,7 +298,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text('Tax'),
                 Text(
-                  '\$${cart.tax.toStringAsFixed(2)}',
+                  locationProvider.formatPrice(cart.tax),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -300,7 +312,7 @@ class _CartScreenState extends State<CartScreen> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 Text(
-                  '\$${cart.total.toStringAsFixed(2)}',
+                  locationProvider.formatPrice(cart.total),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.accentColor,
                     fontWeight: FontWeight.bold,
@@ -321,6 +333,7 @@ class _CartScreenState extends State<CartScreen> {
                     'quantity': item.quantity,
                   }).toList();
 
+                  print('Sending cart items to checkout: $cartItems');
                   final checkoutUrl = await shopifyService.createCheckout(cartItems);
                   
                   if (mounted) {
@@ -329,6 +342,7 @@ class _CartScreenState extends State<CartScreen> {
                     });
 
                     if (checkoutUrl != null) {
+                      print('Received checkout URL: $checkoutUrl');
                       final result = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
@@ -352,6 +366,7 @@ class _CartScreenState extends State<CartScreen> {
                     }
                   }
                 } catch (e) {
+                  print('Error during checkout: $e');
                   if (mounted) {
                     setState(() {
                       _isLoading = false;

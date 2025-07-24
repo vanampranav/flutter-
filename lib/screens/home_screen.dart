@@ -135,15 +135,15 @@ class _HomeScreenState extends State<HomeScreen> {
       pinned: true,
       backgroundColor: Colors.white,
       elevation: 0,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'assets/images/elefit_logo.png',
-            height: 32,
-            fit: BoxFit.contain,
-          ),
-        ],
+      centerTitle: true,
+      toolbarHeight: 60, // Increased height for larger logo
+      title: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Image.asset(
+          'assets/images/elefit_logo.png',
+          height: 48, // Increased logo height
+          fit: BoxFit.fitHeight,
+        ),
       ),
       actions: [
         IconButton(

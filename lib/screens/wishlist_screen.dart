@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/wishlist_model.dart';
 import '../models/cart_model.dart';
+import '../providers/location_provider.dart'; // Add this import
+import 'shop_screen.dart'; // Add import for ShopScreen
+import '../widgets/main_layout.dart'; // Fixed import path for MainLayout
 
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({Key? key}) : super(key: key);
@@ -57,7 +60,14 @@ class WishlistScreen extends StatelessWidget {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
-              // Navigate to shop
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => MainLayout(
+                    currentIndex: 1, // Shop tab
+                    child: const ShopScreen(),
+                  ),
+                ),
+              );
             },
             child: const Text('Start Shopping'),
           ),
@@ -67,6 +77,7 @@ class WishlistScreen extends StatelessWidget {
   }
 
   Widget _buildWishlistItems(BuildContext context, WishlistModel wishlist) {
+    final locationProvider = context.watch<LocationProvider>();
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: wishlist.items.length,
@@ -175,7 +186,7 @@ class WishlistScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '\$${item.price.toStringAsFixed(2)}',
+                                  locationProvider.formatPrice(item.price),
                                   style: TextStyle(
                                     color: AppTheme.accentColor,
                                     fontWeight: FontWeight.bold,
